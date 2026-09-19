@@ -101,56 +101,14 @@ Report the results of Phase 3 here.
 Include both statistical and pragmatic interpretations of the results. 
 ---
 
-## 📁 Codebase Architecture
-
-```
-Elevator_Sims/
-├── config.py             # Simulation constants, building layout, parking formula, distributions
-├── models.py             # Direction, PersonState enums, Person, CallRequest dataclasses
-├── elevator.py          # Elevator class: LOOK/SCAN movement, door delays, capacity, travel metrics
-├── traditional.py        # Traditional dispatch algorithm implementation with traffic balancing
-├── modern.py             # Modern destination dispatch algorithm implementation with traffic balancing
-├── simulation.py         # Daily trial engine (resident generation, 24h event loop, metrics collection)
-├── stats.py              # 90% Confidence interval calculations and overlap evaluation
-├── runner.py             # Parallel multi-trial orchestrator (CLI, multiprocessing, reporting)
-├── results.json          # 365-trial empirical dataset and aggregate statistical analysis
-├── tests/                # Automated test suite (17 unit tests)
-│   ├── test_building.py  # Building parameters, parking formula, resident schedules
-│   ├── test_elevator.py  # Elevator movement, door timing, capacity, speed metrics
-│   ├── test_dispatchers.py# Traditional and modern dispatch decision verification
-│   ├── test_balancing.py # Randomized idle selection and same-path batching tests
-│   ├── test_stats.py     # Confidence interval calculations and overlap detection
-│   └── test_simulation_smoke.py # Integration smoke test
-└── README.md             # Documentation, results, and usage guide
-```
+## Codebase Architecture
 
 ---
 
-## 🚀 How to Run
+## Installation & Usage
 
-### 1. Run Automated Test Suite
-```bash
-python3 -m unittest discover -s tests
-```
+### Run the experiment
 
-### 2. Run a Quick Test (1 or 5 trials)
-```bash
-# Run 1 trial for both algorithms
-python3 runner.py --trials 1
+### Run unittests
 
-# Run 5 trials using 4 CPU workers
-python3 runner.py --trials 5 --workers 4
-```
-
-### 3. Run the Full 365-Trial Experiment
-```bash
-# Full 365 trials with parallel workers and JSON output
-python3 runner.py --trials 365 --workers 8 --output results.json
-```
-
-### 4. CLI Arguments
-- `--trials N`: Number of trials to run (default: 365).
-- `--algorithm [both|traditional|modern]`: Which algorithm to run (default: `both`).
-- `--workers W`: Number of CPU workers for parallel execution (default: all available cores).
-- `--seed S`: Base random seed for reproducible comparisons (default: 42).
-- `--output PATH`: Path to export summary statistics as JSON.
+### Run a custom trial
