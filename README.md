@@ -75,25 +75,123 @@ Here were my results from running the full experiment:
 
 ### 1. Initial State
 
-Report the results of phase 1 here.
+Phase 1 evaluated 100 independent 30-day trials in the steady state (equal stock capacity of 100 units per flavor, fixed $3.00/unit price). Daily customer traffic followed $\mathcal{N}(90, (10/3)^2)$.
+
+#### Daily Sales & Profit Summary (90% Confidence Intervals)
+| Metric | Mean | Std Dev | Std Error | 90% Confidence Interval |
+|---|---|---|---|---|
+| **Vanilla Daily Sales** | 90.00 | 0.65 | 0.06 | [89.89, 90.11] |
+| **Chocolate Daily Sales** | 90.00 | 0.65 | 0.06 | [89.89, 90.11] |
+| **Strawberry Daily Sales** | 90.00 | 0.65 | 0.06 | [89.89, 90.11] |
+| **Total Daily Sales** | 270.00 | 1.94 | 0.19 | [269.68, 270.32] |
+| **Average Daily Profit** | **$240.00** | $3.89 | $0.39 | **[$239.35, $240.64]** |
+
+- **Predicted Population Favorite**: **Vanilla** (assigned by tie-breaker).
+- **Behavioral Note**: Because customers have a $10.00 budget and ice cream costs $3.00/unit, each customer purchased exactly 3 units ($3 \times \$3.00 = \$9.00$, leaving $1.00 unspent). Due to diminishing returns ($\epsilon > 1$), customers systematically diversified across all three flavors (1 vanilla, 1 chocolate, 1 strawberry per customer), resulting in identical sales of 90.00 units/day for every flavor.
+- **Inventory Accounting**: With 270 units sold out of 300 capacity, exactly 30 units remained unsold each night. Daily holding costs were $30.00 ($1.00/unit), wholesale restock costs were $540.00 ($2.00/unit), and revenue was $810.00 ($3.00/unit), yielding net profit $\pi = 810 - 540 - 30 = \$240.00/\text{day}$.
 
 ---
 
 ### 2. Varying Price
 
-Report the results of phase 2 here, except for the demand functions.
+In Phase 2, the selling price of each flavor was individually varied by -25%, -15%, -5%, +5%, +15%, and +25% relative to the baseline $3.00 price, while keeping the other two flavors at $3.00 and maintaining equal stock capacity (100 units each). Each of the 18 configurations was evaluated over 100 trials (30 days/trial).
+
+#### Price Perturbation Configurations & Empirical Performance
+| Configuration | Changed Flavor | Price ($) | Vanilla Sales | Choc Sales | Straw Sales | Daily Profit ($) | 90% CI for Profit |
+|---|---|---|---|---|---|---|---|
+| `vanilla_-0.25` | Vanilla | $2.25 | 89.98 | 89.98 | 89.98 | $172.39 | [$171.87, $172.92] |
+| `vanilla_-0.15` | Vanilla | $2.55 | 90.05 | 90.05 | 90.05 | $199.76 | [$199.19, $200.33] |
+| `vanilla_-0.05` | Vanilla | $2.85 | 89.95 | 89.95 | 89.95 | $226.21 | [$225.63, $226.78] |
+| `vanilla_+0.05` | Vanilla | $3.15 | 90.04 | 90.04 | 90.04 | $253.77 | [$253.07, $254.46] |
+| `vanilla_+0.15` | Vanilla | $3.45 | 89.96 | 89.96 | 89.96 | $280.23 | [$279.58, $280.87] |
+| `vanilla_+0.25` | Vanilla | $3.75 | 90.09 | 90.09 | 90.09 | **$308.14** | **[$307.44, $308.84]** |
+| `chocolate_-0.25` | Chocolate | $2.25 | 90.03 | 90.03 | 90.03 | $172.65 | [$172.12, $173.18] |
+| `chocolate_-0.15` | Chocolate | $2.55 | 89.89 | 89.89 | 89.89 | $198.90 | [$198.38, $199.41] |
+| `chocolate_-0.05` | Chocolate | $2.85 | 90.04 | 90.04 | 90.04 | $226.71 | [$226.10, $227.31] |
+| `chocolate_+0.05` | Chocolate | $3.15 | 90.03 | 90.03 | 90.03 | $253.70 | [$253.11, $254.29] |
+| `chocolate_+0.15` | Chocolate | $3.45 | 90.12 | 90.12 | 90.12 | $281.25 | [$280.61, $281.88] |
+| `chocolate_+0.25` | Chocolate | $3.75 | 90.03 | 90.03 | 90.03 | **$307.03** | **[$306.42, $307.65]** |
+| `strawberry_-0.25` | Strawberry | $2.25 | 90.02 | 90.02 | 90.02 | $172.60 | [$172.07, $173.13] |
+| `strawberry_-0.15` | Strawberry | $2.55 | 89.92 | 89.92 | 89.92 | $199.03 | [$198.51, $199.55] |
+| `strawberry_-0.05` | Strawberry | $2.85 | 90.07 | 90.07 | 90.07 | $226.92 | [$226.32, $227.52] |
+| `strawberry_+0.05` | Strawberry | $3.15 | 89.90 | 89.90 | 89.90 | $252.91 | [$252.23, $253.58] |
+| `strawberry_+0.15` | Strawberry | $3.45 | 90.03 | 90.03 | 90.03 | $280.66 | [$280.04, $281.29] |
+| `strawberry_+0.25` | Strawberry | $3.75 | 90.09 | 90.09 | 90.09 | **$307.13** | **[$306.34, $307.91]** |
+
+#### Substitutability Analysis (%ΔPrice / %ΔQuantity)
+Substitutability was calculated per trial between the altered flavor and the remaining flavors relative to Phase 1 baseline means:
+$$\text{Substitutability} = \frac{(P_{\text{new}} - 3.00) / 3.00}{(Q_{\text{other}} - \bar{Q}_{\text{other, phase 1}}) / \bar{Q}_{\text{other, phase 1}}}$$
+
+| Changed Flavor | %ΔPrice | Other Flavor | Mean Substitutability | 90% Confidence Interval |
+|---|---|---|---|---|
+| Vanilla | -25% | Chocolate / Strawberry | -3368.04 | [-5823.39, -912.69] |
+| Vanilla | -15% | Chocolate / Strawberry | -1597.86 | [-2923.13, -272.58] |
+| Vanilla | -5%  | Chocolate / Strawberry | -539.83  | [-981.33, -98.34] |
+| Vanilla | +5%  | Chocolate / Strawberry | +541.33  | [+99.87, +982.78] |
+| Vanilla | +15% | Chocolate / Strawberry | +1635.24 | [+311.28, +2959.21] |
+| Vanilla | +25% | Chocolate / Strawberry | +2718.84 | [+512.00, +4925.67] |
+| Chocolate | -25% | Vanilla / Strawberry | -2698.02 | [-4905.52, -490.52] |
+| Chocolate | +25% | Vanilla / Strawberry | +1352.45 | [-224.71, +2929.62] |
+| Strawberry | -25% | Vanilla / Chocolate | -678.16  | [-1799.33, +443.01] |
+| Strawberry | +25% | Vanilla / Chocolate | +5.54    | [-24.37, +35.44] |
+
+*Observation*: Because a customer with a $10.00 budget could still easily afford all 3 scoops even when one flavor increased to $3.75 ($3.75 + $3.00 + $3.00 = $9.75 $\le$ $10.00$), quantity sold for all flavors remained essentially constant at 90.0 units/day. The denominator ($\% \Delta Q$) was pure zero-centered Monte Carlo noise from customer arrival fluctuations, producing massive, erratic substitutability ratios.
 
 ---
 
 ### 3. Estimated Demand Functions
 
-Show plots and captions describing them. 
+Using the 7 empirical $(P, Q)$ data pairs for each flavor (the 6 price variations from Phase 2 plus the $3.00 baseline from Phase 1), linear demand curves were fitted using ordinary least squares:
+$$Q(P) = \text{slope} \times P + \text{intercept}$$
+
+![Demand Curves](demand_curves.png)
+
+#### Fitted Demand Curve Models
+- **Vanilla**: $Q(P) = 0.0386 \cdot P + 89.8944$
+- **Chocolate**: $Q(P) = 0.0168 \cdot P + 89.9547$
+- **Strawberry**: $Q(P) = -0.0201 \cdot P + 90.0430$
+
+*Analysis of Demand Slopes*: The fitted slopes are practically zero ($|\text{slope}| \le 0.038$), indicating near-perfect demand inelasticity over the isolated price range [$2.25, $3.75]. Because customers always purchased 1 unit of each flavor as long as the total bundle cost remained under $10.00, raising any single price did not reduce units sold.
+
+#### Individual Flavor Profit Maximization
+Individual gross profit for each flavor was evaluated as $\pi_i = (P_i - \text{Unit Cost}) \times Q_i = (P_i - 2.00) \times Q_i$:
+| Flavor | Optimal Price ($P^*$) | Mean Quantity Sold ($Q^*$) | Individual Profit ($\pi_i^*$) |
+|---|---|---|---|
+| **Vanilla** | **$3.75** | 90.09 units/day | $157.67 / day |
+| **Chocolate** | **$3.75** | 89.93 units/day | $157.38 / day |
+| **Strawberry** | **$3.75** | 89.94 units/day | $157.40 / day |
+
+Because demand was completely inelastic when evaluated one flavor at a time, higher prices strictly yielded higher profit per unit with zero volume loss, causing the individual profit-maximizing price to hit the upper boundary of $3.75 for all three flavors.
 
 ---
 
 ### 4. Testing Our Optimal Guess
 
-Report the results of Phase 3 here. 
+In Phase 3, the optimal configuration inferred from Phase 2 was tested over 100 independent 30-day trials:
+- **Optimal Prices Chosen**: $P_V^* = \$3.75$, $P_C^* = \$3.75$, $P_S^* = \$3.75$
+- **Optimal Stock Ratios Chosen**:
+  - Vanilla: $90.09 / 269.97 = \mathbf{33.37\%}$ (100 units)
+  - Chocolate: $89.93 / 269.97 = \mathbf{33.31\%}$ (100 units)
+  - Strawberry: $89.94 / 269.97 = \mathbf{33.32\%}$ (100 units)
+
+#### Phase 3 Experimental Results
+| Metric | Value | 90% Confidence Interval |
+|---|---|---|
+| **Vanilla Daily Sales** | 60.00 units | [59.93, 60.07] |
+| **Chocolate Daily Sales** | 60.00 units | [59.93, 60.07] |
+| **Strawberry Daily Sales** | 60.00 units | [59.93, 60.07] |
+| **Total Daily Sales** | **180.00 units** | [179.78, 180.22] |
+| **Average Daily Profit** | **$195.02 / day** | **[$194.45, $195.59]** |
+
+#### Comparative Profit Evaluation
+- **Phase 1 Baseline Daily Profit**: **$240.00**
+- **Phase 2 Maximum Single-Flavor Configuration Profit**: **$308.14** (`vanilla_+0.25`)
+- **Phase 3 Optimal Configuration Daily Profit**: **$195.02**
+- **Difference vs. Phase 1**: **-$44.98 / day (-18.7%)**
+- **Difference vs. Phase 2 Max**: **-$113.12 / day (-36.7%)**
+- **Experiment Outcome**: **FAILURE (`is_success: False`)**
+
+The Phase 3 configuration yielded a daily profit substantially *lower* than the baseline state and all profitable Phase 2 configurations. 
 
 ---
 
