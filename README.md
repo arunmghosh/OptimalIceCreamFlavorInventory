@@ -60,7 +60,7 @@ Lastly, phase three takes our guess for the optimal prices and stock proportions
 - For each trial, also compute substitutability between the flavor whose price changed and each of the other flavors (i.e. %change in price / % change in quanity sold of other flavor, relative to $3.00 and mean sales of that flavor in phase 1)
 - Also report 90% confidence intervals for those substitutability values aggregated over the 100 trials
 - Use the price and mean number of units sold pairs (7 data points for each flavor given the different price changes and the $3.00 trial from phase 1) to estimate demand functions for each flavor (plot them visually)
-- Report which pair maximized profit for that individual flavor
+- Report which combination of pairs maximizes overall profit while staying within the budget of $10.00
 
 ### Phase 3
 - Compute optimal stock ratio from the optimal units sold for each flavor found from the estimated demand functions in phase 2
