@@ -97,8 +97,10 @@ Report the results of Phase 3 here.
 
 ---
 
-### 5. Conclusions & Discussion
+### 5. Conclusions
+
 Include both statistical and pragmatic interpretations of the results. 
+
 ---
 
 ## Codebase Architecture
