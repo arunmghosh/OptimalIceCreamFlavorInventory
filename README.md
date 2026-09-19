@@ -75,7 +75,7 @@ Here were my results from running the full experiment:
 
 ### 1. Initial State
 
-Phase 1 evaluated 100 independent 30-day trials in the steady state (equal stock capacity of 100 units per flavor, fixed 3.00/unit price). Daily customer traffic followed $\mathcal{N}(90, (10/3)^2)$ sampled without replacement from a persistent population of 150 individuals with preferences centered around the unknown population distribution.
+Phase 1 evaluated 100 independent 30-day trials in the steady state (equal stock capacity of 100 units per flavor, fixed $3.00/unit price). Daily customer traffic followed a Normal distribution with mean 90 and standard deviation 10/3 (approx 3.33) sampled without replacement from a persistent population of 150 individuals with preferences centered around the unknown population distribution.
 
 #### Daily Sales & Profit Summary (90% Confidence Intervals)
 | Metric | Mean | Std Dev | Std Error | 90% Confidence Interval |
@@ -88,8 +88,8 @@ Phase 1 evaluated 100 independent 30-day trials in the steady state (equal stock
 | **Average Daily Profit** | **$239.50** | $3.48 | $0.35 | **[$238.92, $240.07]** |
 
 - **Predicted Population Favorite**: **Vanilla** (assigned by tie-breaker).
-- **Behavioral Dynamics**: With a $10.00 budget and uniform 3.00 prices, customers purchased 3 units ($3 \times \$3.00 = \$9.00$, leaving 1.00 unspent). Diminishing returns ($\epsilon > 1$) prompted systematic diversification across all three flavors (1 unit of each flavor per customer).
-- **Inventory Accounting**: With ~270 units sold out of 300 capacity, exactly ~30 units remained unsold each night. Daily holding costs were 30.25 (1.00/unit), wholesale restocking costs were 539.50 (2.00/unit), and revenue was 809.25 (3.00/unit), yielding net profit $\pi = 809.25 - 539.50 - 30.25 = 239.50/\text{day}$.
+- **Behavioral Dynamics**: With a $10.00 budget and uniform $3.00 prices, customers purchased 3 units (3 x $3.00 = $9.00, leaving $1.00 unspent). Diminishing returns (epsilon > 1) prompted systematic diversification across all three flavors (1 unit of each flavor per customer).
+- **Inventory Accounting**: With ~270 units sold out of 300 capacity, exactly ~30 units remained unsold each night. Daily holding costs were $30.25 ($1.00/unit), wholesale restocking costs were $539.50 ($2.00/unit), and revenue was $809.25 ($3.00/unit), yielding net profit: `Profit = $809.25 - $539.50 - $30.25 = $239.50/day`.
 
 ---
 
@@ -121,7 +121,10 @@ In Phase 2, the selling price of each flavor was individually varied by -25%, -1
 
 #### Cross-Price Elasticity Analysis
 Elasticity was evaluated per trial by normalizing daily sales by daily customer arrivals, filtering out ambient foot-traffic noise:
-$$\text{Elasticity} = \frac{\% \Delta \left[\frac{\text{Average Daily } Q_{\text{other}}}{\text{Average Daily Arrivals}}\right]}{\% \Delta \text{Price}_{\text{changed}}}$$
+
+```text
+Cross-Price Elasticity = [% Change in (Average Daily Q_other / Average Daily Arrivals)] / [% Change in Price_changed]
+```
 
 | Changed Flavor | %ΔPrice | Other Flavor | Mean Elasticity | 90% Confidence Interval |
 |---|---|---|---|---|
@@ -149,25 +152,32 @@ $$\text{Elasticity} = \frac{\% \Delta \left[\frac{\text{Average Daily } Q_{\text
 
 ### 3. Estimated Demand Functions
 
-Using the 7 empirical $(P, Q)$ data pairs for each flavor (the 6 price variations from Phase 2 plus the $3.00 baseline from Phase 1), linear demand curves were fitted using ordinary least squares:
-$$Q(P) = \text{slope} \times P + \text{intercept}$$
+Using the 7 empirical (Price, Quantity) data pairs for each flavor (the 6 price variations from Phase 2 plus the $3.00 baseline from Phase 1), linear demand curves were fitted using ordinary least squares:
+
+```text
+Q(Price) = slope * Price + intercept
+```
 
 ![Demand Curves](demand_curves.png)
 
 #### Fitted Demand Curve Models
-- **Vanilla**: $Q(P) = -6.7973 \cdot P + 112.9441$
-- **Chocolate**: $Q(P) = -6.8153 \cdot P + 112.9272$
-- **Strawberry**: $Q(P) = -9.7842 \cdot P + 115.6066$
+- **Vanilla**: `Q(Price) = -6.7973 * Price + 112.9441`
+- **Chocolate**: `Q(Price) = -6.8153 * Price + 112.9272`
+- **Strawberry**: `Q(Price) = -9.7842 * Price + 115.6066`
 
 *Analysis of Demand Slopes*:
-All three flavors exhibit true downward-sloping demand curves. Strawberry demonstrates the highest price sensitivity ($\text{slope} = -9.78$), consistent with its status as the least-preferred flavor. Vanilla and Chocolate exhibit moderately inelastic demand ($\text{slope} \approx -6.80$), reflecting strong consumer loyalty.
+All three flavors exhibit true downward-sloping demand curves. Strawberry demonstrates the highest price sensitivity (slope = -9.78), consistent with its status as the least-preferred flavor. Vanilla and Chocolate exhibit moderately inelastic demand (slope ≈ -6.80), reflecting strong consumer loyalty.
 
 #### Budget-Constrained Joint Price Optimization
-To avoid the budget cliff where customers drop from 3 scoops to 2 scoops, the optimal price triplet was computed via an exhaustive combinatorial search across all $7 \times 7 \times 7 = 343$ price configurations, enforcing the customer budget constraint:
-$$\max_{P_V, P_C, P_S} \sum_{i \in \{V, C, S\}} (P_i - \text{Unit Cost}) \times Q_i(P_i) \quad \text{subject to} \quad P_V + P_C + P_S \le \$10.00$$
+To avoid the budget cliff where customers drop from 3 scoops to 2 scoops, the optimal price triplet was computed via an exhaustive combinatorial search across all 7 x 7 x 7 = 343 price configurations, enforcing the customer budget constraint:
+
+```text
+Maximize Total Profit = Sum over flavors i of: (Price_i - Unit Cost) * Q_i(Price_i)
+Subject to: Price_Vanilla + Price_Chocolate + Price_Strawberry <= $10.00
+```
 
 Out of 299 feasible combinations, the profit-maximizing combination selected for Phase 3 was:
-| Flavor | Optimal Price ($P^*$) | Mean Quantity Sold ($Q^*$) | Individual Profit ($\pi_i^*$) |
+| Flavor | Optimal Price (P*) | Mean Quantity Sold (Q*) | Individual Profit |
 |---|---|---|---|
 | **Vanilla** | **$3.45** | 90.02 units/day | $130.53 / day |
 | **Chocolate** | **$3.45** | 90.12 units/day | $130.67 / day |
@@ -179,11 +189,11 @@ Out of 299 feasible combinations, the profit-maximizing combination selected for
 ### 4. Testing Our Optimal Guess
 
 In Phase 3, the budget-constrained optimal configuration was tested over 100 independent 30-day trials:
-- **Optimal Prices**: $P_V^* = \$3.45$, $P_C^* = \$3.45$, $P_S^* = \$3.00$
+- **Optimal Prices**: Vanilla = $3.45, Chocolate = $3.45, Strawberry = $3.00 (Basket Total = $9.90)
 - **Optimal Stock Ratios**:
-  - Vanilla: $90.02 / 270.06 = \mathbf{33.33\%}$ (100 units)
-  - Chocolate: $90.12 / 270.06 = \mathbf{33.37\%}$ (100 units)
-  - Strawberry: $89.92 / 270.06 = \mathbf{33.30\%}$ (100 units)
+  - Vanilla: 90.02 / 270.06 = **33.33%** (100 units)
+  - Chocolate: 90.12 / 270.06 = **33.37%** (100 units)
+  - Strawberry: 89.92 / 270.06 = **33.30%** (100 units)
 
 #### Phase 3 Experimental Results
 | Metric | Value | 90% Confidence Interval |
@@ -209,9 +219,9 @@ Phase 3 established a statistically significant and substantial profit increase 
 ### 5. Conclusions & Discussion
 
 #### Statistical Interpretation
-1. **Confidence Interval Separation**: The 90% confidence interval for Phase 3 average daily profit (**[$319.58, $321.08]**) exhibits zero overlap with Phase 1 (**[$238.92, $240.07]**) and Phase 2's highest single-flavor configuration (**[$306.91, $308.22]**). This confirms that the observed profit enhancement (+33.7%) is statistically significant ($p < 0.001$) and not an artifact of random sampling.
-2. **True Downward-Sloping Demand**: All three flavors produced negative demand slopes, with Strawberry demonstrating the greatest elasticity ($\beta = -9.78$) and Vanilla demonstrating the least ($\beta = -6.80$). This matches microeconomic theory: consumers are most price-sensitive toward their least-preferred substitute.
-3. **Robust Cross-Price Substitution**: Cross-price elasticities normalized by arrivals yielded tight, positive coefficients ($+0.30$ to $+0.53$) when Strawberry prices increased, proving that consumers readily substitute toward Vanilla and Chocolate when their convenience costs shift.
+1. **Confidence Interval Separation**: The 90% confidence interval for Phase 3 average daily profit (**[$319.58, $321.08]**) exhibits zero overlap with Phase 1 (**[$238.92, $240.07]**) and Phase 2's highest single-flavor configuration (**[$306.91, $308.22]**). This confirms that the observed profit enhancement (+33.7%) is statistically significant (p < 0.001) and not an artifact of random sampling.
+2. **True Downward-Sloping Demand**: All three flavors produced negative demand slopes, with Strawberry demonstrating the greatest elasticity (slope = -9.78) and Vanilla demonstrating the least (slope = -6.80). This matches microeconomic theory: consumers are most price-sensitive toward their least-preferred substitute.
+3. **Robust Cross-Price Substitution**: Cross-price elasticities normalized by arrivals yielded tight, positive coefficients (+0.30 to +0.53) when Strawberry prices increased, proving that consumers readily substitute toward Vanilla and Chocolate when their convenience costs shift.
 
 #### Pragmatic Business & Economic Interpretation
 1. **The Shared Wallet Principle**: Pricing products sold together cannot be solved as independent single-variable optimizations. Because each customer has a strict $10.00 budget, setting all three flavors to $3.75 triggered an unintended general-equilibrium collapse: 3 scoops ($11.25) exceeded budget, cutting purchase volume by 33.3% and quadrupling overnight holding penalties ($120/day). Joint basket optimization ($3.45 + $3.45 + $3.00 = $9.90) captured maximum consumer surplus while preserving full 3-scoop volume (270 units/day).
@@ -228,45 +238,58 @@ The table below summarizes these evolutions:
 
 | Dimension | Original Specification (`IceCreamTruckSimulation.pdf`) | Observed Mathematical / Behavioral Issue | Implemented Solution | Experimental Impact |
 |---|---|---|---|---|
-| **1. Diminishing Returns ($\epsilon$)** | $\epsilon = x \cdot y \cdot z < 1$ | Perceived price shrank after every purchase ($\text{true\_p} \times \epsilon$). Rewarded buying *only* the first flavor, violating diminishing marginal utility. | $\epsilon = \hat{x} \cdot \hat{y} \cdot \hat{z} > 1$ (product of normalized flavor multipliers) | Perceived price increases after each unit purchased, properly inducing flavor variety and multi-scoop diversification. |
-| **2. Population Micro-foundations** | Independent daily sampling of random preference vectors for each customer | The Law of Large Numbers across 90 daily arrivals averaged out preferences to a uniform aggregate demand, making demand curves artificially flat. | Persistent community pool of 150 individuals with fixed preferences; daily foot traffic samples from this pool | Preserved realistic market heterogeneity, yielding authentic downward-sloping demand curves ($\beta < 0$). |
-| **3. Elasticity Formulation** | Raw $\% \Delta P_{\text{changed}} / \% \Delta Q_{\text{other}}$ without traffic normalization | (1) Inverted classical economic elasticity ($\Delta P / \Delta Q$ instead of $\Delta Q / \Delta P$). (2) Daily arrival noise dominated small $\Delta Q$, causing explosive divide-by-zero artifacts ($\pm 3,000$). | $\% \Delta [Q_{\text{other}} / \text{arrivals}] / \% \Delta P_{\text{changed}}$ (arrival-normalized per-capita cross-price elasticity) | Normalized out foot-traffic noise; produced well-behaved, economically meaningful elasticities ($+0.30$ to $+0.53$). |
-| **4. Price Optimization Search** | Isolated 1D optimization: select the highest-profit price for each flavor independently | In Phase 2, testing prices one at a time stayed under budget ($3.75 + 3.00 + 3.00 = \$9.75 \le \$10$). Setting all three to $\$3.75$ in Phase 3 broke budget ($\$11.25 > \$10$), crashing volume to 2 scoops and profit to $\$195/\text{day}$. | Joint combinatorial search across all 343 price triplets subject to $P_V + P_C + P_S \le \$10.00$ | Identified the global constrained optimum $(\$3.45, \$3.45, \$3.00)$, unlocking **$\$320.33/\text{day}$** (+33.7% over baseline). |
+| **1. Diminishing Returns (ε)** | ε = x * y * z < 1 | Perceived price shrank after every purchase (`true_p * ε`). Rewarded buying *only* the first flavor, violating diminishing marginal utility. | ε = x_hat * y_hat * z_hat > 1 (product of normalized flavor multipliers) | Perceived price increases after each unit purchased, properly inducing flavor variety and multi-scoop diversification. |
+| **2. Population Micro-foundations** | Independent daily sampling of random preference vectors for each customer | The Law of Large Numbers across 90 daily arrivals averaged out preferences to a uniform aggregate demand, making demand curves artificially flat. | Persistent community pool of 150 individuals with fixed preferences; daily foot traffic samples from this pool | Preserved realistic market heterogeneity, yielding authentic downward-sloping demand curves (slope < 0). |
+| **3. Elasticity Formulation** | Raw `% Change Price_changed / % Change Q_other` without traffic normalization | (1) Inverted classical economic elasticity (Delta P / Delta Q instead of Delta Q / Delta P). (2) Daily arrival noise dominated small Delta Q, causing explosive divide-by-zero artifacts (+/- 3,000). | `% Change [Q_other / arrivals] / % Change Price_changed` (arrival-normalized per-capita cross-price elasticity) | Normalized out foot-traffic noise; produced well-behaved, economically meaningful elasticities (+0.30 to +0.53). |
+| **4. Price Optimization Search** | Isolated 1D optimization: select the highest-profit price for each flavor independently | In Phase 2, testing prices one at a time stayed under budget ($3.75 + $3.00 + $3.00 = $9.75 <= $10.00). Setting all three to $3.75 in Phase 3 broke budget ($11.25 > $10.00), crashing volume to 2 scoops and profit to $195/day. | Joint combinatorial search across all 343 price triplets subject to `Price_Vanilla + Price_Chocolate + Price_Strawberry <= $10.00` | Identified the global constrained optimum ($3.45, $3.45, $3.00), unlocking **$320.33/day** (+33.7% over baseline). |
 
 ##### Detailed Breakdown of Each Evolutionary Change
 
-##### 1. Diminishing Returns Coefficient ($\epsilon$)
-- **The Original Specification**: The original PDF document defined $\epsilon$ as the product of the probability weights $x \cdot y \cdot z$. Because probabilities sum to 1 ($x + y + z = 1$) and each flavor has a minimum preference of 0.25, the maximum possible value of this product is $(1/3)^3 \approx 0.037$, and the minimum is $0.25 \times 0.25 \times 0.50 = 0.03125$. Hence, $\epsilon$ was strictly less than 1. In the customer ordering algorithm, after purchasing a scoop of a flavor, its perceived price was updated via $\text{true\_p} \leftarrow \text{true\_p} \times \epsilon$.
-- **The Flaw**: Multiplying a positive price by $\epsilon < 1$ dramatically *discounts* that flavor's perceived price for subsequent scoops (e.g., $\$3.00 \times 0.037 = \$0.11$). Rather than exhibiting diminishing marginal utility (where a consumer tires of a flavor and prefers variety), the customer experienced *increasing marginal returns*, purchasing all available scoops of the first flavor until stock was exhausted or budget ran out.
-- **The Correction**: $\epsilon$ was redefined as the product of the normalized preference multipliers:
-  $$\epsilon = \hat{x} \cdot \hat{y} \cdot \hat{z} > 1$$
-  Because each multiplier $\hat{m} \ge 1$ (with at least two strictly $> 1$), $\epsilon > 1$. Consequently, purchasing a flavor inflates its perceived price for subsequent scoops ($\text{true\_p} \leftarrow \text{true\_p} \times \epsilon$), making other flavours relatively cheaper. This accurately models diminishing marginal utility, prompting consumers to diversify their orders across flavors.
+##### 1. Diminishing Returns Coefficient (ε)
+- **The Original Specification**: The original PDF document defined ε as the product of the probability weights `x * y * z`. Because probabilities sum to 1 (`x + y + z = 1`) and each flavor has a minimum preference of 0.25, the maximum possible value of this product is `(1/3)^3 ≈ 0.037`, and the minimum is `0.25 * 0.25 * 0.50 = 0.03125`. Hence, ε was strictly less than 1. In the customer ordering algorithm, after purchasing a scoop of a flavor, its perceived price was updated via `true_p = true_p * ε`.
+- **The Flaw**: Multiplying a positive price by ε < 1 dramatically *discounts* that flavor's perceived price for subsequent scoops (e.g., `$3.00 * 0.037 = $0.11`). Rather than exhibiting diminishing marginal utility (where a consumer tires of a flavor and prefers variety), the customer experienced *increasing marginal returns*, purchasing all available scoops of the first flavor until stock was exhausted or budget ran out.
+- **The Correction**: ε was redefined as the product of the normalized preference multipliers:
+  ```text
+  ε = x_hat * y_hat * z_hat > 1
+  ```
+  Because each multiplier `m_hat >= 1` (with at least two strictly > 1), ε > 1. Consequently, purchasing a flavor inflates its perceived price for subsequent scoops (`true_p = true_p * ε`), making other flavors relatively cheaper. This accurately models diminishing marginal utility, prompting consumers to diversify their orders across flavors.
 
 ##### 2. Customer Population & Demand Micro-foundations
-- **The Original Specification**: The simulation specification described customer preferences as drawn from a Dirichlet-like distribution centered on $\{x, y, z\}$. If each arriving customer's preference vector is sampled independently every day, the sample mean across $K \approx 90$ arrivals converges sharply to the population mean with variance $\sigma^2 / 90 \approx 0$.
+- **The Original Specification**: The simulation specification described customer preferences as drawn from a Dirichlet-like distribution centered on `{x, y, z}`. If each arriving customer's preference vector is sampled independently every day, the sample mean across `K ≈ 90` arrivals converges sharply to the population mean with variance `sigma^2 / 90 ≈ 0`.
 - **The Flaw**: Under independent daily sampling, daily demand across flavors was almost completely homogeneous. In Phase 2 price variation tests, price changes caused either zero substitution or sudden binary threshold switches, producing flat, uninformative demand curves that did not reflect real consumer markets.
-- **The Correction**: We established a persistent simulated market population of 150 individuals, each initialized with fixed idiosyncratic preferences centered around the population distribution. On any given simulation day, the daily foot traffic $K \sim \mathcal{N}(90, (10/3)^2)$ is drawn without replacement from this persistent community. This captures realistic neighborhood dynamics where the customer pool is finite, preferences are sticky, and sampling variations produce authentic downward-sloping linear demand curves.
+- **The Correction**: We established a persistent simulated market population of 150 individuals, each initialized with fixed idiosyncratic preferences centered around the population distribution. On any given simulation day, the daily foot traffic `K ~ Normal(mean=90, std=10/3)` is drawn without replacement from this persistent community. This captures realistic neighborhood dynamics where the customer pool is finite, preferences are sticky, and sampling variations produce authentic downward-sloping linear demand curves.
 
 ##### 3. Cross-Price Elasticity & Substitutability Formulation
 - **The Original Specification**: The PDF defined substitutability between the changed flavor and other flavors as:
-  $$\text{Substitutability} = \frac{\% \Delta \text{Price}_{\text{changed}}}{\% \Delta Q_{\text{other}}}$$
+  ```text
+  Substitutability = (% Change in Price_changed) / (% Change in Q_other)
+  ```
 - **The Flaw**: This formulation suffered from two severe issues:
-  1. *Inverted Definition*: In microeconomics, elasticity is defined as $\% \Delta Q / \% \Delta P$ (measuring responsiveness of quantity to a price signal), not $\% \Delta P / \% \Delta Q$. Inverting the ratio made inelastic responses appear infinitely large rather than near zero.
-  2. *Ambient Foot-Traffic Noise*: Daily sales $Q_{\text{other}}$ depend directly on the random draw of daily arrivals $K \sim \mathcal{N}(90, (10/3)^2)$. When price changes caused subtle volume changes, the denominator $\% \Delta Q$ frequently hovered near zero or was overwhelmed by arrival noise, generating wild swings between $-3,368$ and $+2,718$.
+  1. *Inverted Definition*: In microeconomics, elasticity is defined as `% Change Q / % Change P` (measuring responsiveness of quantity to a price signal), not `% Change P / % Change Q`. Inverting the ratio made inelastic responses appear infinitely large rather than near zero.
+  2. *Ambient Foot-Traffic Noise*: Daily sales `Q_other` depend directly on the random draw of daily arrivals `K ~ Normal(mean=90, std=10/3)`. When price changes caused subtle volume changes, the denominator `% Change Q` frequently hovered near zero or was overwhelmed by arrival noise, generating wild swings between -3,368 and +2,718.
 - **The Correction**: Elasticity was re-engineered as an arrival-normalized per-capita metric:
-  $$\text{Cross-Price Elasticity} = \frac{\% \Delta \left[\frac{\text{Average Daily } Q_{\text{other}}}{\text{Average Daily Arrivals}}\right]}{\% \Delta \text{Price}_{\text{changed}}}$$
-  Normalizing sales by daily arrivals isolated genuine consumer substitution from ambient customer count fluctuations, yielding stable, theoretically consistent elasticities in the range of $+0.30$ to $+0.53$.
+  ```text
+  Cross-Price Elasticity = [% Change in (Average Daily Q_other / Average Daily Arrivals)] / [% Change in Price_changed]
+  ```
+  Normalizing sales by daily arrivals isolated genuine consumer substitution from ambient customer count fluctuations, yielding stable, theoretically consistent elasticities in the range of +0.30 to +0.53.
 
 ##### 4. Joint Multi-Flavor Basket Optimization vs. Isolated 1D Optimization
-- **The Original Specification**: Phase 2 prescribed finding the $(P, Q)$ pair that maximized profit for each flavor individually, and setting Phase 3 prices to those individual profit-maximizing prices:
-  $$P_i^* = \arg\max_{P} \pi_i(P) \quad \text{for } i \in \{V, C, S\}$$
-- **The Flaw**: During Phase 2, each flavor's price was varied while the other two remained at $\$3.00$. Even at the highest price of $\$3.75$, the total cost of 1 scoop of each flavor was $\$3.75 + \$3.00 + \$3.00 = \$9.75$, which was comfortably within the customer's $\$10.00$ budget. Thus, customers still bought 3 scoops, and demand appeared nearly perfectly inelastic up to $\$3.75$. As a result, the isolated 1D optimization selected $\$3.75$ for *all three flavors*.
-  However, in Phase 3, when all three flavors were simultaneously priced at $\$3.75$:
-  $$\text{Basket Price} = 3 \times \$3.75 = \$11.25 > \$10.00$$
-  Customers could no longer afford 3 scoops; they were forced to drop to 2 scoops ($2 \times \$3.75 = \$7.50 \le \$10.00$). Total daily volume plummeted from 270 units to 180 units. Unsold inventory quadrupled from 30 units to 120 units per night, incurring a crippling $\$120.00/\text{day}$ holding penalty. Daily profit collapsed from the $\$239.50$ baseline to $\$195.02/\text{day}$, falsely indicating that price optimization had "failed."
-- **The Correction**: We replaced isolated 1D optimization with **Joint Multi-Flavor Combinatorial Optimization**. We searched all $7^3 = 343$ price combinations across the three flavors under the explicit budget constraint:
-  $$\max_{P_V, P_C, P_S} \sum_{i} (P_i - c) \cdot Q_i(P_i) \quad \text{s.t.} \quad P_V + P_C + P_S \le \$10.00$$
-  The algorithm identified $(P_V^* = \$3.45, P_C^* = \$3.45, P_S^* = \$3.00)$ with total basket price $\$9.90 \le \$10.00$. This pricing preserved the full 270-unit volume while extracting the maximum margin from the high-preference flavors, driving average daily profit to **$\$320.33/\text{day}$** (a **+33.7% increase** over baseline and **+4.1% increase** over the best Phase 2 configuration).
+- **The Original Specification**: Phase 2 prescribed finding the (Price, Quantity) pair that maximized profit for each flavor individually, and setting Phase 3 prices to those individual profit-maximizing prices:
+  ```text
+  Price_i* = argmax Profit_i(Price) for each flavor i in {Vanilla, Chocolate, Strawberry}
+  ```
+- **The Flaw**: During Phase 2, each flavor's price was varied while the other two remained at $3.00. Even at the highest price of $3.75, the total cost of 1 scoop of each flavor was `$3.75 + $3.00 + $3.00 = $9.75`, which was comfortably within the customer's $10.00 budget. Thus, customers still bought 3 scoops, and demand appeared nearly perfectly inelastic up to $3.75. As a result, the isolated 1D optimization selected $3.75 for *all three flavors*.
+  However, in Phase 3, when all three flavors were simultaneously priced at $3.75:
+  ```text
+  Basket Price = 3 * $3.75 = $11.25 (Exceeds $10.00 Customer Budget)
+  ```
+  Customers could no longer afford 3 scoops; they were forced to drop to 2 scoops (`2 * $3.75 = $7.50 <= $10.00`). Total daily volume plummeted from 270 units to 180 units. Unsold inventory quadrupled from 30 units to 120 units per night, incurring a crippling $120.00/day holding penalty. Daily profit collapsed from the $239.50 baseline to $195.02/day, falsely indicating that price optimization had "failed."
+- **The Correction**: We replaced isolated 1D optimization with **Joint Multi-Flavor Combinatorial Optimization**. We searched all `7^3 = 343` price combinations across the three flavors under the explicit budget constraint:
+  ```text
+  Maximize Total Profit = Sum over flavors i of: (Price_i - Unit Cost) * Q_i(Price_i)
+  Subject to: Price_Vanilla + Price_Chocolate + Price_Strawberry <= $10.00
+  ```
+  The algorithm identified `(Price_Vanilla* = $3.45, Price_Chocolate* = $3.45, Price_Strawberry* = $3.00)` with total basket price `$9.90 <= $10.00`. This pricing preserved the full 270-unit volume while extracting the maximum margin from the high-preference flavors, driving average daily profit to **$320.33/day** (a **+33.7% increase** over baseline and **+4.1% increase** over the best Phase 2 configuration).
 
 ---
 
