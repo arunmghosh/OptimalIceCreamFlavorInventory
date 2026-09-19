@@ -11,12 +11,13 @@ from config import (
     INITIAL_PRICES,
     INITIAL_STOCK_RATIO,
     INITIAL_UNIT_PRICE,
+    POPULATION_SIZE,
     PRICE_VARIATIONS,
     TOTAL_CAPACITY,
     UNIT_COST,
 )
 from models import TrialRecord
-from simulation import IceCreamTruckSimulation
+from simulation import IceCreamTruckSimulation, generate_population
 from stats import (
     aggregate_trials_summary,
     compute_substitutability,
@@ -42,6 +43,7 @@ class Phase1Result:
     trials: List[TrialRecord]
     summary: Dict[str, Any]
     baseline_sales_means: Dict[str, float]
+    baseline_arrivals_mean: float
     predicted_favorite: str
 
 
@@ -85,6 +87,13 @@ class ExperimentOrchestrator:
         self.heterogeneous_customers = heterogeneous_customers
         self.base_seed = base_seed
 
+        # Generate a true fixed population of 150 people with preferences following the unknown distribution
+        self.population = generate_population(
+            size=POPULATION_SIZE,
+            population_preferences=self.population_preferences,
+            seed=self.base_seed,
+        )
+
     def run_phase_1(
         self,
         num_trials: int = 100,
@@ -101,6 +110,7 @@ class ExperimentOrchestrator:
                 prices=INITIAL_PRICES,
                 stock_ratios=INITIAL_STOCK_RATIO,
                 population_preferences=self.population_preferences,
+                population=self.population,
                 heterogeneous_customers=self.heterogeneous_customers,
                 seed=seed,
             )
@@ -110,6 +120,7 @@ class ExperimentOrchestrator:
 
         summary = aggregate_trials_summary(trials)
         baseline_means = {f: summary["raw_means"][f] for f in FLAVORS}
+        baseline_arrivals = summary.get("raw_arrivals_mean", 90.0)
         predicted_favorite = summary["predicted_favorite"]
 
         return Phase1Result(
@@ -117,6 +128,7 @@ class ExperimentOrchestrator:
             trials=trials,
             summary=summary,
             baseline_sales_means=baseline_means,
+            baseline_arrivals_mean=baseline_arrivals,
             predicted_favorite=predicted_favorite,
         )
 
@@ -177,14 +189,16 @@ class ExperimentOrchestrator:
                         prices=prices,
                         stock_ratios=INITIAL_STOCK_RATIO,
                         population_preferences=self.population_preferences,
+                        population=self.population,
                         heterogeneous_customers=self.heterogeneous_customers,
                         seed=trial_seed,
                     )
                     trial = sim.run_trial(trial_id=t_idx + 1)
                     trials.append(trial)
 
-                    # Compute substitutability for each other flavor in this trial
+                    # Compute elasticity for each other flavor in this trial
                     trial_sales = trial.average_daily_sales
+                    trial_arrivals = trial.average_daily_arrivals
                     for of in other_flavors:
                         q_other = trial_sales[of]
                         q_base = baseline_means[of]
@@ -193,8 +207,10 @@ class ExperimentOrchestrator:
                             p_new=new_price,
                             q_baseline=q_base,
                             q_new=q_other,
+                            arrivals_baseline=phase1_result.baseline_arrivals_mean,
+                            arrivals_new=trial_arrivals,
                         )
-                        sub_val = sub_metrics["spec_substitutability"]
+                        sub_val = sub_metrics["elasticity"]
                         if not np.isnan(sub_val):
                             sub_per_flavor[of].append(sub_val)
 
@@ -244,15 +260,39 @@ class ExperimentOrchestrator:
                 "intercept": float(intercept),
             }
 
-        # Identify profit-maximizing pair (units sold, price) for each individual flavor
-        optimal_pairs: Dict[str, DemandPoint] = {}
-        for f in FLAVORS:
-            # Maximizes individual flavor profit: (Price - UNIT_COST) * Quantity
-            best_point = max(
-                demand_points[f],
-                key=lambda dp: dp.individual_profit,
-            )
-            optimal_pairs[f] = best_point
+        # Joint price optimization subject to customer budget constraint:
+        # Sum of prices across the 3 flavors must not exceed CUSTOMER_BUDGET ($10.00).
+        # We test every combination of the 7 tested prices per flavor that sums to <= 10.00,
+        # and select the combination that maximizes total estimated profit.
+        import itertools
+
+        dp_by_price = {
+            f: {dp.price: dp for dp in demand_points[f]}
+            for f in FLAVORS
+        }
+        prices_v = [dp.price for dp in demand_points["vanilla"]]
+        prices_c = [dp.price for dp in demand_points["chocolate"]]
+        prices_s = [dp.price for dp in demand_points["strawberry"]]
+
+        best_combo = None
+        best_total_profit = float("-inf")
+
+        for pv, pc, ps in itertools.product(prices_v, prices_c, prices_s):
+            if round(pv + pc + ps, 4) <= 10.00:
+                dp_v = dp_by_price["vanilla"][pv]
+                dp_c = dp_by_price["chocolate"][pc]
+                dp_s = dp_by_price["strawberry"][ps]
+                total_prof = (
+                    dp_v.individual_profit + dp_c.individual_profit + dp_s.individual_profit
+                )
+                if total_prof > best_total_profit:
+                    best_total_profit = total_prof
+                    best_combo = {"vanilla": pv, "chocolate": pc, "strawberry": ps}
+
+        optimal_pairs: Dict[str, DemandPoint] = {
+            f: dp_by_price[f][best_combo[f]]
+            for f in FLAVORS
+        }
 
         return Phase2Result(
             configurations=configurations_data,
@@ -294,6 +334,7 @@ class ExperimentOrchestrator:
                 prices=optimal_prices,
                 stock_ratios=optimal_stock_ratios,
                 population_preferences=self.population_preferences,
+                population=self.population,
                 heterogeneous_customers=self.heterogeneous_customers,
                 seed=seed,
             )

@@ -41,30 +41,31 @@ class TestStatsModule(unittest.TestCase):
         self.assertEqual(res_single["ci_upper"], 42.0)
 
     def test_compute_substitutability(self):
-        # Baseline: price = 3.00, sales = 50.0
-        # New: price = 3.75 (+25%), other flavor sales = 60.0 (+20%)
-        # Spec substitutability = (%ΔP / %ΔQ) = 0.25 / 0.20 = 1.25
-        # Standard elasticity = (%ΔQ / %ΔP) = 0.20 / 0.25 = 0.80
+        # Baseline: price = 3.00, sales = 50.0, arrivals = 90.0
+        # New: price = 3.75 (+25%), other flavor sales = 60.0 (+20%), arrivals = 90.0
+        # Normalized Elasticity = (%Δ[Q/arrivals]) / (%ΔP) = 0.20 / 0.25 = 0.80
         metrics = compute_substitutability(
             p_baseline=3.00,
             p_new=3.75,
             q_baseline=50.0,
             q_new=60.0,
+            arrivals_baseline=90.0,
+            arrivals_new=90.0,
         )
         self.assertAlmostEqual(metrics["pct_change_price"], 0.25)
-        self.assertAlmostEqual(metrics["pct_change_quantity"], 0.20)
-        self.assertAlmostEqual(metrics["spec_substitutability"], 1.25)
+        self.assertAlmostEqual(metrics["pct_change_rate"], 0.20)
+        self.assertAlmostEqual(metrics["elasticity"], 0.80)
         self.assertAlmostEqual(metrics["standard_cross_elasticity"], 0.80)
 
     def test_compute_substitutability_zero_division(self):
-        # If other flavor sales do not change (%ΔQ == 0)
+        # If price does not change (%ΔP == 0)
         metrics = compute_substitutability(
             p_baseline=3.00,
-            p_new=3.30,
+            p_new=3.00,
             q_baseline=50.0,
-            q_new=50.0,
+            q_new=55.0,
         )
-        self.assertTrue(math.isnan(metrics["spec_substitutability"]))
+        self.assertTrue(math.isnan(metrics["elasticity"]))
 
 
 if __name__ == "__main__":

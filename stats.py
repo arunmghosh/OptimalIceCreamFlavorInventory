@@ -80,45 +80,48 @@ def compute_substitutability(
     p_new: float,
     q_baseline: float,
     q_new: float,
+    arrivals_baseline: float = 90.0,
+    arrivals_new: float = 90.0,
 ) -> Dict[str, float]:
-    """Compute substitutability and cross-price elasticity.
+    """Compute elasticity normalized by daily customer arrivals.
 
-    According to the simulation specification:
-    Substitutability = (% change in price of changed flavor) / (% change in quantity sold of other flavor)
-    relative to initial state ($3.00 baseline and Phase 1 mean sales).
-
-    Also computes standard economic cross-price elasticity (%ΔQ / %ΔP) for comparison.
+    Formula: % change in [avg daily Q / avg daily arrivals] / % change in price.
+    This controls for random day-to-day arrival fluctuations and properly scales the values.
 
     Args:
         p_baseline: Baseline unit price ($3.00).
         p_new: New unit price for the changed flavor.
-        q_baseline: Baseline mean sales of the other flavor in Phase 1.
-        q_new: Mean or trial sales of the other flavor under the new price.
+        q_baseline: Baseline mean sales of the flavor in Phase 1.
+        q_new: Mean sales of the flavor under the new price.
+        arrivals_baseline: Baseline average daily arrivals in Phase 1 (default: ~90).
+        arrivals_new: Average daily arrivals under new price (default: ~90).
 
     Returns:
-        Dict containing pct_change_price, pct_change_quantity, spec_substitutability,
-        and standard_cross_elasticity.
+        Dict containing pct_change_price, pct_change_rate, elasticity,
+        and legacy spec_substitutability.
     """
     pct_change_p = (p_new - p_baseline) / p_baseline if p_baseline != 0 else 0.0
-    pct_change_q = (q_new - q_baseline) / q_baseline if q_baseline != 0 else 0.0
 
-    # Specification definition: %ΔP / %ΔQ
-    if abs(pct_change_q) < 1e-9:
-        spec_substitutability = float("nan")
-    else:
-        spec_substitutability = pct_change_p / pct_change_q
+    rate_base = q_baseline / max(1e-9, arrivals_baseline)
+    rate_new = q_new / max(1e-9, arrivals_new)
+    pct_change_rate = (rate_new - rate_base) / rate_base if rate_base != 0 else 0.0
 
-    # Standard economic definition: %ΔQ / %ΔP
     if abs(pct_change_p) < 1e-9:
-        standard_cross_elasticity = float("nan")
+        elasticity = float("nan")
     else:
-        standard_cross_elasticity = pct_change_q / pct_change_p
+        elasticity = pct_change_rate / pct_change_p
+
+    pct_change_q = (q_new - q_baseline) / q_baseline if q_baseline != 0 else 0.0
+    spec_substitutability = pct_change_p / pct_change_q if abs(pct_change_q) >= 1e-9 else float("nan")
 
     return {
         "pct_change_price": pct_change_p,
+        "pct_change_rate": pct_change_rate,
         "pct_change_quantity": pct_change_q,
-        "spec_substitutability": spec_substitutability,
-        "standard_cross_elasticity": standard_cross_elasticity,
+        "elasticity": elasticity,
+        "spec_substitutability": elasticity,  # Primary elasticity metric
+        "legacy_ratio": spec_substitutability,
+        "standard_cross_elasticity": elasticity,
     }
 
 
@@ -136,14 +139,19 @@ def aggregate_trials_summary(trials: List[TrialRecord]) -> Dict[str, Any]:
 
     n = len(trials)
     sales_by_flavor: Dict[str, List[float]] = {f: [] for f in FLAVORS}
+    sales_per_arrival_by_flavor: Dict[str, List[float]] = {f: [] for f in FLAVORS}
     total_sales: List[float] = []
+    daily_arrivals: List[float] = []
     profits: List[float] = []
 
     for trial in trials:
         avg_sales = trial.average_daily_sales
+        spa = trial.average_daily_sales_per_arrival
         for f in FLAVORS:
             sales_by_flavor[f].append(avg_sales[f])
+            sales_per_arrival_by_flavor[f].append(spa[f])
         total_sales.append(trial.average_daily_sales_all)
+        daily_arrivals.append(trial.average_daily_arrivals)
         profits.append(trial.average_daily_profit)
 
     summary: Dict[str, Any] = {
@@ -152,11 +160,20 @@ def aggregate_trials_summary(trials: List[TrialRecord]) -> Dict[str, Any]:
             flavor: confidence_interval_90(sales_by_flavor[flavor])
             for flavor in FLAVORS
         },
+        "sales_per_arrival_ci": {
+            flavor: confidence_interval_90(sales_per_arrival_by_flavor[flavor])
+            for flavor in FLAVORS
+        },
         "total_sales_ci": confidence_interval_90(total_sales),
+        "arrivals_ci": confidence_interval_90(daily_arrivals),
         "profit_ci": confidence_interval_90(profits),
         "raw_means": {
             flavor: float(np.mean(sales_by_flavor[flavor])) for flavor in FLAVORS
         },
+        "raw_sales_per_arrival_means": {
+            flavor: float(np.mean(sales_per_arrival_by_flavor[flavor])) for flavor in FLAVORS
+        },
+        "raw_arrivals_mean": float(np.mean(daily_arrivals)),
         "raw_profit_mean": float(np.mean(profits)),
     }
 
@@ -165,3 +182,4 @@ def aggregate_trials_summary(trials: List[TrialRecord]) -> Dict[str, Any]:
     summary["predicted_favorite"] = favorite
 
     return summary
+

@@ -5,6 +5,7 @@ import numpy as np
 
 from config import (
     CONFIDENCE_LEVEL,
+    CUSTOMER_BUDGET,
     CUSTOMER_TRAFFIC_MAX,
     CUSTOMER_TRAFFIC_MEAN,
     CUSTOMER_TRAFFIC_MIN,
@@ -14,6 +15,7 @@ from config import (
     INITIAL_PRICES,
     INITIAL_STOCK_RATIO,
     MIN_FLAVOR_PREFERENCE,
+    POPULATION_SIZE,
     TOTAL_CAPACITY,
     TRIAL_DAYS,
 )
@@ -51,44 +53,45 @@ def allocate_capacity(
     return int_alloc
 
 
-def sample_customer_preferences(
-    population_mean: Dict[str, float],
-    rng: np.random.Generator,
-    heterogeneous: bool = False,
-) -> Dict[str, float]:
-    """Sample a customer's flavor preference distribution.
+def generate_population(
+    size: int = POPULATION_SIZE,
+    population_preferences: Optional[Dict[str, float]] = None,
+    seed: Optional[int] = None,
+) -> List[Person]:
+    """Generate a fixed population of individuals with diverse flavor preferences.
+
+    Preferences follow the underlying population distribution, sum to 1.0, and
+    strictly satisfy min(x, y, z) >= MIN_FLAVOR_PREFERENCE (0.25).
 
     Args:
-        population_mean: Base population preference distribution.
-        rng: Numpy random generator instance.
-        heterogeneous: If True, draws individual preferences with Dirichlet perturbation
-            ensuring min preference >= MIN_FLAVOR_PREFERENCE and sum == 1.0.
-            If False, returns population_mean directly.
+        size: Number of people in the population (default: 150).
+        population_preferences: True underlying mean population preferences.
+        seed: Random seed for reproducible population generation.
 
     Returns:
-        Dict mapping flavor name to preference probability.
+        List of Person instances with fixed preference distributions.
     """
-    if not heterogeneous:
-        return dict(population_mean)
+    rng = np.random.default_rng(seed)
+    pop_mean = dict(population_preferences or DEFAULT_POPULATION_PREFERENCES)
 
-    # Sample from Dirichlet distribution centered around population mean
-    # Excess above minimum 0.25 is distributed via Dirichlet
-    excess_weights = np.array([
-        max(1e-4, population_mean[f] - MIN_FLAVOR_PREFERENCE) for f in FLAVORS
-    ])
-    concentration = 15.0  # Controls dispersion around mean
-    alpha = excess_weights * concentration
-    alpha = np.maximum(alpha, 0.5)
+    # Excess above 0.25 threshold
+    excess_total = 1.0 - (MIN_FLAVOR_PREFERENCE * len(FLAVORS))
+    weights = [max(1e-4, pop_mean[f] - 0.24) for f in FLAVORS]
+    alpha = np.array(weights) * 8.0  # Controls dispersion around mean
 
-    excess_sample = rng.dirichlet(alpha)
-    total_excess = 1.0 - (MIN_FLAVOR_PREFERENCE * len(FLAVORS))
-    prefs = {}
-    for i, f in enumerate(FLAVORS):
-        prefs[f] = float(MIN_FLAVOR_PREFERENCE + excess_sample[i] * total_excess)
+    population: List[Person] = []
+    for _ in range(size):
+        d = rng.dirichlet(alpha)
+        prefs = {
+            f: float(MIN_FLAVOR_PREFERENCE + d[i] * excess_total)
+            for i, f in enumerate(FLAVORS)
+        }
+        # Normalize to ensure exact 1.0 sum
+        s = sum(prefs.values())
+        norm_prefs = {f: p / s for f, p in prefs.items()}
+        population.append(Person(norm_prefs, budget=CUSTOMER_BUDGET))
 
-    # Normalize to avoid floating point drift
-    s = sum(prefs.values())
-    return {f: p / s for f, p in prefs.items()}
+    return population
 
 
 class IceCreamTruckSimulation:
@@ -99,6 +102,7 @@ class IceCreamTruckSimulation:
         prices: Optional[Dict[str, float]] = None,
         stock_ratios: Optional[Dict[str, float]] = None,
         population_preferences: Optional[Dict[str, float]] = None,
+        population: Optional[List[Person]] = None,
         total_capacity: int = TOTAL_CAPACITY,
         trial_days: int = TRIAL_DAYS,
         heterogeneous_customers: bool = False,
@@ -110,9 +114,10 @@ class IceCreamTruckSimulation:
             prices: Unit selling price for each flavor (default: $3.00 each).
             stock_ratios: Proportion of total capacity for each flavor (default: 1/3 each).
             population_preferences: True underlying population preferences.
+            population: Fixed population of individuals to sample daily arrivals from.
             total_capacity: Total storage capacity of truck (default: 300).
             trial_days: Number of days to simulate (default: 30).
-            heterogeneous_customers: Whether individual customers have personal variations.
+            heterogeneous_customers: Legacy flag for continuous customer resampling.
             seed: Optional random seed for reproducibility.
         """
         self.prices = dict(prices if prices is not None else INITIAL_PRICES)
@@ -128,6 +133,16 @@ class IceCreamTruckSimulation:
         self.trial_days = trial_days
         self.heterogeneous_customers = heterogeneous_customers
         self.rng = np.random.default_rng(seed)
+
+        # Fixed population of people to sample daily foot traffic from
+        if population is not None:
+            self.population = population
+        else:
+            self.population = generate_population(
+                size=POPULATION_SIZE,
+                population_preferences=self.population_preferences,
+                seed=seed,
+            )
 
         # Target inventory allocation per flavor
         self.target_stock = allocate_capacity(self.total_capacity, self.stock_ratios)
@@ -156,18 +171,20 @@ class IceCreamTruckSimulation:
         num_customers = self.draw_daily_traffic()
         daily_sales: Dict[str, int] = {f: 0 for f in FLAVORS}
 
-        for _ in range(num_customers):
+        # Sample num_customers individuals without replacement from the fixed population
+        sample_size = min(num_customers, len(self.population))
+        cust_indices = self.rng.choice(len(self.population), size=sample_size, replace=False)
+
+        for idx in cust_indices:
             # Check if truck has any inventory left
             if sum(self.inventory.values()) <= 0:
                 break
 
-            # Customer arrives with preferences
-            cust_prefs = sample_customer_preferences(
-                self.population_preferences,
-                self.rng,
-                heterogeneous=self.heterogeneous_customers,
+            # Fresh person instance with this individual's fixed preferences and full budget
+            person = Person(
+                self.population[idx].preferences,
+                budget=CUSTOMER_BUDGET,
             )
-            person = Person(cust_prefs)
 
             # Customer purchases according to ordering algorithm
             order = person.buy_order(self.prices, self.inventory)

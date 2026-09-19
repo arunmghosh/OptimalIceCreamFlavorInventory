@@ -204,6 +204,21 @@ class TrialRecord:
         return self.total_units_sold_all / days
 
     @property
+    def total_arrivals(self) -> int:
+        return sum(day.num_customers for day in self.daily_records)
+
+    @property
+    def average_daily_arrivals(self) -> float:
+        days = max(1, self.num_days)
+        return self.total_arrivals / days
+
+    @property
+    def average_daily_sales_per_arrival(self) -> Dict[str, float]:
+        arrivals = max(1, self.total_arrivals)
+        totals = self.total_units_sold
+        return {f: totals[f] / arrivals for f in FLAVORS}
+
+    @property
     def total_revenue(self) -> float:
         return sum(day.revenue for day in self.daily_records)
 
