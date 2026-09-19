@@ -28,7 +28,7 @@ Lastly, phase three takes our guess for the optimal prices and stock proportions
   - **Flavor Preferences**: A probability distribution {x: vanilla, y: chocolate, z: strawberry}, where x + y + z = 1, and min(x, y. z) >= 0.25
   - **Preference Multipliers**: Preferred flavor (corresponds to max(x,y,z)) is assigned 1. If x was chosen, the multipliers are {vanilla: 1, chocolate: x/y, strawberry: x/z}. Call these multipliers x_hat, y_hat, and z_hat.
   - **Budget per order**: $10.00
-  - **Diminishing Returns Coefficient (ε)**: x * y * z
+  - **Diminishing Returns Coefficient (ε)**: Product of the flavor multipliers (x_hat * y_hat * z_hat > 1)
 
 - **Ordering Algorithm**:
   - **Skew flavor costs with preferences**: ex/ true_p(vanilla) = price(vanilla) * vanilla_multiplier
@@ -105,12 +105,91 @@ Include both statistical and pragmatic interpretations of the results.
 
 ## Codebase Architecture
 
+```
+ice_cream_truck/
+├── config.py                 # Simulation constants, price variations, traffic distribution, default preferences
+├── models.py                 # Person customer model (ordering algorithm, ε diminishing returns), DailyRecord, TrialRecord
+├── simulation.py             # IceCreamTruckSimulation discrete-event engine, capacity allocation, overnight restocking
+├── stats.py                  # 90% Student's t confidence intervals, substitutability (%ΔP/%ΔQ), cross-price elasticity
+├── experiment.py             # Phase 1, Phase 2, Phase 3 orchestrators, linear demand curve fitting, plot generation
+├── runner.py                 # CLI interface for custom trials, rapid smoke tests, individual phases, and full runs
+├── IceCreamTruckSimulation.pdf # Original mathematical problem specification
+├── tests/                    # Automated unit and integration test suite
+│   ├── test_models.py        # Person preferences, diminishing returns order logic, accounting checks
+│   ├── test_simulation.py    # Capacity allocation invariant, daily traffic bounds, restocking mechanics
+│   ├── test_stats.py         # Confidence intervals, edge cases, substitutability calculation
+│   ├── test_experiment.py    # Multi-phase execution, demand curve fitting, optimal pair selection
+│   └── test_smoke.py         # Rapid end-to-end integration smoke test
+└── README.md                 # Project specification, experiment documentation, architecture, and usage
+```
+
 ---
 
 ## Installation & Usage
 
-### Run the experiment
+### Prerequisites
+The simulation codebase requires Python 3.10+ along with `numpy`, `scipy`, and `matplotlib`:
+```bash
+pip install numpy scipy matplotlib
+```
 
 ### Run unittests
+Run the complete automated test suite (16 unit and integration tests):
+```bash
+python3 -m unittest discover -s tests
+```
+
+### Run a quick smoke test
+Verify all three experimental phases end-to-end with a rapid integration test (~0.5s):
+```bash
+python3 runner.py --smoke-test
+```
+
+### Run the experiment
+
+#### 1. Run All 3 Phases (Full Experiment)
+Run 100 trials across Phase 1 (baseline), Phase 2 (18 price perturbation configurations), and Phase 3 (optimal validation), plotting demand curves and saving results to JSON:
+```bash
+python3 runner.py --phase all --trials 100 --plot demand_curves.png --output results.json
+```
+
+#### 2. Run Individual Phases
+- **Phase 1 Only** (Initial steady state with equal stock proportions and $3.00 price):
+  ```bash
+  python3 runner.py --phase 1 --trials 100
+  ```
+
+- **Phase 2 Only** (Price perturbations, substitutability matrices, and demand curve estimation):
+  ```bash
+  python3 runner.py --phase 2 --trials 100 --plot demand_curves.png
+  ```
+
+- **Phase 3 Only** (Evaluate optimal prices and stock ratios against baseline and Phase 2 states):
+  ```bash
+  python3 runner.py --phase 3 --trials 100
+  ```
 
 ### Run a custom trial
+Simulate a custom trial with arbitrary unit prices, stock capacity, duration, and flavor proportions:
+```bash
+# Example: 30-day trial with custom prices ($3.25 vanilla, $3.00 chocolate, $2.75 strawberry)
+# and stock ratios (40% vanilla, 35% chocolate, 25% strawberry)
+python3 runner.py --custom --trials 5 --days 30 --capacity 300 \
+  --prices 3.25 3.00 2.75 \
+  --ratios 0.40 0.35 0.25
+```
+
+### Command-Line Arguments Reference
+| Argument | Description | Default |
+|---|---|---|
+| `--smoke-test` | Run a rapid end-to-end integration check across all 3 phases | `False` |
+| `--custom` | Run a custom simulation trial with user-specified parameters | `False` |
+| `--phase [1\|2\|3\|all]` | Run a specific phase or all phases in sequence | `None` |
+| `--trials N` | Number of 30-day trials to run per configuration | `100` |
+| `--days D` | Number of days simulated per trial | `30` |
+| `--capacity C` | Total unit stock capacity of the truck | `300` |
+| `--prices P_V P_C P_S` | Selling prices for vanilla, chocolate, strawberry | `3.00 3.00 3.00` |
+| `--ratios R_V R_C R_S` | Capacity proportions for vanilla, chocolate, strawberry (sum to 1.0) | `0.333 0.333 0.334` |
+| `--seed S` | Base random seed for reproducible comparisons | `42` |
+| `--output PATH` | Path to export structured experimental results as JSON | `None` |
+| `--plot PATH` | Path to save fitted demand curve plots (PNG) | `None` |
