@@ -75,7 +75,7 @@ Here were my results from running the full experiment:
 
 ### 1. Initial State
 
-Phase 1 evaluated 100 independent 30-day trials in the steady state (equal stock capacity of 100 units per flavor, fixed $3.00/unit price). Daily customer traffic followed $\mathcal{N}(90, (10/3)^2)$ sampled without replacement from a persistent population of 150 individuals with preferences centered around the unknown population distribution.
+Phase 1 evaluated 100 independent 30-day trials in the steady state (equal stock capacity of 100 units per flavor, fixed 3.00/unit price). Daily customer traffic followed $\mathcal{N}(90, (10/3)^2)$ sampled without replacement from a persistent population of 150 individuals with preferences centered around the unknown population distribution.
 
 #### Daily Sales & Profit Summary (90% Confidence Intervals)
 | Metric | Mean | Std Dev | Std Error | 90% Confidence Interval |
@@ -88,8 +88,8 @@ Phase 1 evaluated 100 independent 30-day trials in the steady state (equal stock
 | **Average Daily Profit** | **$239.50** | $3.48 | $0.35 | **[$238.92, $240.07]** |
 
 - **Predicted Population Favorite**: **Vanilla** (assigned by tie-breaker).
-- **Behavioral Dynamics**: With a $10.00 budget and uniform $3.00 prices, customers purchased 3 units ($3 \times \$3.00 = \$9.00$, leaving $1.00 unspent). Diminishing returns ($\epsilon > 1$) prompted systematic diversification across all three flavors (1 unit of each flavor per customer).
-- **Inventory Accounting**: With ~270 units sold out of 300 capacity, exactly ~30 units remained unsold each night. Daily holding costs were $30.25 ($1.00/unit), wholesale restocking costs were $539.50 ($2.00/unit), and revenue was $809.25 ($3.00/unit), yielding net profit $\pi = 809.25 - 539.50 - 30.25 = \$239.50/\text{day}$.
+- **Behavioral Dynamics**: With a $10.00 budget and uniform 3.00 prices, customers purchased 3 units ($3 \times \$3.00 = \$9.00$, leaving 1.00 unspent). Diminishing returns ($\epsilon > 1$) prompted systematic diversification across all three flavors (1 unit of each flavor per customer).
+- **Inventory Accounting**: With ~270 units sold out of 300 capacity, exactly ~30 units remained unsold each night. Daily holding costs were 30.25 (1.00/unit), wholesale restocking costs were 539.50 (2.00/unit), and revenue was 809.25 (3.00/unit), yielding net profit $\pi = 809.25 - 539.50 - 30.25 = 239.50/\text{day}$.
 
 ---
 
